@@ -1,0 +1,68 @@
+[server]
+addr="0.0.0.0:8090"
+
+[env]
+env = "debug"
+[env.super]
+"17711111111" = "admin123"
+
+[log]
+# available：debug, info, warn, error, crit
+level="debug"
+
+[mysql]
+host="mysql"
+port=3306
+user="root"
+pwd="123456"
+db="chat33"
+
+[limit]
+chatPool=20
+chatRate=200
+
+[service]
+dockingDeadline = 1
+
+
+[cacheType]
+enable=true
+cacheType="redis"
+
+[redis]
+url="redis://redis:6379"
+password="123456"
+maxIdle=30
+maxActive=50
+idleTimeout=240
+
+#加好友不需要验证 用,隔开
+[notConfirmAppId]
+appIds="1002"
+
+[fileStore]
+host="123213213"
+port=8080
+filePath="/var/www/html/chat33"
+
+[batchConfig]
+#new device batch day
+BatchDayAgo=2
+#pack length
+BatchPackLength=50
+#batch push interval: Millisecond
+BatchInterval=500
+
+[work]
+host="http://127.0.0.1:8088"
+
+[rate]
+#汇率服务地址
+TradeUrl = ""
+UsdtUrl = ""
+
+[SMS]
+Surl     = "http://118.31.52.32"
+Curl     = "http://118.31.52.32/validate/code"
+CodeType = "quick"
+Msg      = "FzmRandom"

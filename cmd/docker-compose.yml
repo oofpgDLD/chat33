@@ -1,0 +1,56 @@
+# Use root/example as user/password credentials
+version: '3.5'
+services:
+  db:
+    build: ./mysql
+    image: mysql:chat
+    ports:
+    - "3306"
+    container_name: chat33-mysql
+    networks:
+      nw1:
+        aliases:
+        - mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: 123456
+    command: --bind-address=0.0.0.0
+
+  redis:
+    build: ./redis
+    image: redis:chat
+    ports:
+    - "6379"
+    container_name: chat33-redis
+    networks:
+      nw1:
+        aliases:
+        - redis
+
+  web:
+    build: ./server
+    image: chat33:1.0.0
+    restart: always
+    #ports:
+    #- "8090:8090"
+    container_name: chat33-server
+    networks:
+      nw1:
+        aliases:
+        - server
+    depends_on:
+    - db
+    - redis
+
+  nginx:
+    build: ./nginx
+    image: nginx:chat
+    ports:
+    - "8088:8088"
+    container_name: chat33-nginx
+    networks:
+      nw1:
+        aliases:
+        - nginx
+networks:
+  nw1:
+    name: chatnet
