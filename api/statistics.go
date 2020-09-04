@@ -3,6 +3,7 @@ package api
 import (
 	"encoding/hex"
 	"encoding/json"
+	"regexp"
 
 	"github.com/33cn/chat33/comet"
 	"github.com/33cn/chat33/comet/ws"
@@ -265,23 +266,35 @@ func UploadSecretKey(c *gin.Context) {
 	fs = append(fs, friends...)
 
 	//去除字符串首的 "0x"
-	str := params.PublicKey
-	in, _ := hex.DecodeString(str[2:])
+	publicKey := params.PublicKey
+	privateKey := params.PrivateKey
+	str := publicKey
+
+	reg := regexp.MustCompile(`^(0x|0X)([\w]+)`)
+	if reg.MatchString(str) {
+		str = reg.ReplaceAllString(str, "${2}")
+	}
+	in, _ := hex.DecodeString(str)
 	//publickey转成地址
 	uid := address.PublicKeyToAddress(address.NormalVer, in)
+	err := address.CheckAddress(address.NormalVer, uid)
+	if err != nil {
+		c.Set(ReqError, result.NewError(result.ParamsError).SetChildErr(result.ServiceChat, nil, "生成地址失败：公钥格式不正确"))
+		return
+	}
 
 	MarkId := c.MustGet(AppId).(string) + uid
-	err := orm.UpdateUid(MarkId, c.MustGet(UserId).(string), uid)
+	err = orm.UpdateUid(MarkId, c.MustGet(UserId).(string), uid)
 	if err != nil {
 		c.Set(ReqError, result.NewError(result.WriteDbFailed))
 		return
 	}
-	err = orm.UpdatePublicKey(userId, params.PublicKey, params.PrivateKey)
+	err = orm.UpdatePublicKey(userId, publicKey, privateKey)
 	if err != nil {
 		c.Set(ReqError, result.NewError(result.WriteDbFailed))
 		return
 	}
-	proto.SendUpdatePubKeyNotification(userId, params.PublicKey, params.PrivateKey, fs)
+	proto.SendUpdatePubKeyNotification(userId, publicKey, privateKey, fs)
 
 	ws.CloseOther(userId, device, uuid)
 
