@@ -102,6 +102,21 @@ func GetUserInfoByPhone(appId, phone string) (*types.User, error) {
 	return ret, err
 }
 
+func GetUserInfoByEmail(appId, email string) (*types.User, error) {
+	if cfg.CacheType.Enable {
+		ret, err := redis.GetUserInfoByField(appId, "email", email)
+		if err != nil {
+			logUser.Error("redis.GetUserInfoByField", "err", err, "appId", appId, "email", email)
+		}
+		return ret, err
+	}
+	ret, err := mysql.GetUserInfoByEmail(appId, email)
+	if err != nil {
+		logUser.Error("mysql.GetUserInfoByEmail", "err", err, "appId", appId, "phone", email)
+	}
+	return ret, err
+}
+
 func GetUserInfoByMarkId(appId, markId string) (*types.User, error) {
 	if cfg.CacheType.Enable {
 		ret, err := redis.GetUserInfoByField(appId, "uid", markId)

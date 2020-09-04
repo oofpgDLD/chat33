@@ -6,7 +6,7 @@ import (
 )
 
 func Test_Encoding(t *testing.T) {
-	in, err := hex.DecodeString("02c041205ba02149d3e03c05ff67a6c519aa5d2bef293d2e7fc3951931bc9ad712")
+	in, err := hex.DecodeString("03f21818f989b977ed6b789ce088119d7ba5a4b37c39689ee2b4f273164555dbae")
 	if err != nil {
 		t.Error(err)
 		return

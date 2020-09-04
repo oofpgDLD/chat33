@@ -145,6 +145,76 @@ func PhoneLogin(appId, phone, deviceType, version string) (map[string]interface{
 	return ret, nil
 }
 
+func EmailLogin(appId, email, deviceType, version string) (map[string]interface{}, error) {
+	//通过手机号查询user信息，如果存在，登入；如果不存在，注册。
+	ret := make(map[string]interface{})
+	var token string
+	//1表示登陆
+	t := 1
+	sysInfo, err := orm.GetUserInfoByEmail(appId, email)
+	if err != nil {
+		return nil, result.NewError(result.DbConnectFail)
+	}
+	createtime := utility.NowMillionSecond()
+	//用户不存在的情况 新增用户和token
+	if sysInfo == nil {
+		//表示注册
+		t = 0
+		logUser.Debug("create new user")
+		Username := utility.RandomUsername()
+		UserLevel := types.LevelMember
+		//随机生成的token
+		token = utility.GetToken()
+		//账户号
+		account := email
+
+		//TODO 新增用户 第一次登入uid,markId等字段无法生成  verified 默认是0
+		id, err := orm.InsertUser("", "", appId, Username, account, email, "", "",
+			cmn.ToString(UserLevel), "0", "", "", deviceType, version, utility.NowMillionSecond())
+
+		//id, err := orm.AddUser("", "", appId, Username, phone, cmn.ToString(UserLevel), deviceType, version, utility.NowMillionSecond())
+		if err != nil {
+			return nil, result.NewError(result.TokenLoginFailed)
+		}
+		//存到user和 token的关系表里
+		_, err = orm.AddToken(utility.ToString(id), token, createtime)
+		if err != nil {
+			return nil, result.NewError(result.TokenLoginFailed)
+		}
+	} else {
+		DeviceToken, time, err := orm.FindToken(sysInfo.UserId)
+		//用户存在 但token关系不存在的情况
+		if DeviceToken == "" {
+			//随机生成的token
+			token = utility.GetToken()
+			_, err = orm.AddToken(sysInfo.UserId, token, createtime)
+			if err != nil {
+				return nil, result.NewError(result.TokenLoginFailed)
+			}
+		} else {
+			//判断是否过期
+			_, isOverdue := utility.CheckToken(time)
+			//如果已经过期 新建一个token
+			if isOverdue == true {
+				token = utility.GetToken()
+				_, err = orm.AddToken(sysInfo.UserId, token, createtime)
+				if err != nil {
+					return nil, result.NewError(result.TokenLoginFailed)
+				}
+				//未过期
+			} else {
+				token = DeviceToken
+			}
+		}
+		logUser.Debug("login get check user success")
+
+	}
+	ret["type"] = t
+	ret["token"] = token
+
+	return ret, nil
+}
+
 func TokenLogin(appId, token, deviceType, deviceName, loginType, uuid, version string, apiTokenAuth bool) (map[string]interface{}, error) {
 	//从对应的账户体系获取用户信息
 	sysInfo, err := user.GetUserInfoFromAccountSystem(appId, token)
@@ -154,7 +224,9 @@ func TokenLogin(appId, token, deviceType, deviceName, loginType, uuid, version s
 		}
 		return nil, result.NewError(result.TokenLoginFailed).SetExtMessage(err.Error())
 	}
-
+	if sysInfo == nil {
+		return nil, result.NewError(result.UserNotExists)
+	}
 	if apiTokenAuth {
 		//更新缓存
 		tokenInfo := &user_model.Token{
@@ -340,6 +412,9 @@ func DevTokenLogin(appId, phone, token, deviceType, deviceName, loginType, uuid,
 	sysInfo, err := orm.GetUserInfoByToken(appId, token)
 	if err != nil {
 		return nil, result.NewError(result.DbConnectFail)
+	}
+	if sysInfo == nil {
+		return nil, result.NewError(result.UserNotExists)
 	}
 	if apiTokenAuth {
 		//更新缓存

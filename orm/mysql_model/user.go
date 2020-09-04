@@ -275,6 +275,18 @@ func GetUserInfoByPhone(appId, phone string) (*types.User, error) {
 	return convertUser(info), nil
 }
 
+func GetUserInfoByEmail(appId, email string) (*types.User, error) {
+	maps, err := db.FindUserByEmail(appId, email)
+	if err != nil {
+		return nil, err
+	}
+	if len(maps) < 1 {
+		return nil, nil
+	}
+	info := maps[0]
+	return convertUser(info), nil
+}
+
 func GetUserInfoByToken(appId, token string) (*types.User, error) {
 	maps, err := db.FindUserByToken(appId, token)
 	if err != nil {

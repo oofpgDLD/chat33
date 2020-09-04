@@ -1,5 +1,10 @@
 package types
 
+const (
+	ValidateCodeTypeSMS = 0
+	ValidateCodeTypeEmail = 1
+)
+
 //邀请入群
 // 1需要验证 0 不需要验证
 const RoomInviteNeedConfirm = 1

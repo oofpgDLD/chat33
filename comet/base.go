@@ -21,7 +21,7 @@ func init() {
 	receiver[types.EventCommonMsg] = doReceiveNomal
 	receiver[types.EventSyncMsg] = doReceiveSyncEvent
 	receiver[types.EventUpdateSKey] = doReceiveUpdateSKeyEvent
-	receiver[types.EventUpdatePublicKey] = doReceiveUpdatePubKeyEvent
+	//receiver[types.EventUpdatePublicKey] = doReceiveUpdatePubKeyEvent
 	receiver[types.EventStartAck] = doReceiveStartAckEvent
 	receiver[types.EventStartGetAllSKey] = doGetAllSKeyEvent
 }

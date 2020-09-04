@@ -7,6 +7,7 @@ import (
 
 	"github.com/33cn/chat33/model"
 	"github.com/33cn/chat33/orm"
+	"github.com/33cn/chat33/pkg/email"
 	"github.com/33cn/chat33/pkg/sms"
 	"github.com/33cn/chat33/result"
 	"github.com/33cn/chat33/user"
@@ -186,6 +187,24 @@ func UserTokenLogin(context *gin.Context) {
 	context.Set(ReqResult, data)
 }
 
+func validatePhone(phone, code string) error {
+	//用于debug调试
+	if cfg.Env.Env == "debug" && code == "111111" {
+		return nil
+	}
+	//验证验证码是否正确
+	return sms.ValidateCode(cfg.SMS.Curl, cfg.SMS.CodeType, phone, code)
+}
+
+func validateEmail(em, code string) error {
+	//用于debug调试
+	if cfg.Env.Env == "debug" && code == "111111" {
+		return nil
+	}
+	//验证验证码是否正确
+	return email.ValidateCode(cfg.Email.Curl, cfg.Email.CodeType, em, code)
+}
+
 // 验证验证码，返回token
 func PhoneLogin(context *gin.Context) {
 	type requestParams struct {
@@ -212,14 +231,11 @@ func PhoneLogin(context *gin.Context) {
 		return
 	}
 
-	//TODO 暂时写死 测试用
-	if cfg.Env.Env == "debug" && params.Code != "111111" {
-		//验证验证码是否正确
-		err := sms.ValidateCode(cfg.SMS.Curl, cfg.SMS.CodeType, params.Phone, params.Code)
-		if err != nil {
-			context.Set(ReqError, result.NewError(result.VerifyCodeError))
-			return
-		}
+	//验证验证码是否正确
+	err := validatePhone(params.Phone, params.Code)
+	if err != nil {
+		context.Set(ReqError, result.NewError(result.VerifyCodeError))
+		return
 	}
 
 	//验证登录/注册
@@ -229,6 +245,70 @@ func PhoneLogin(context *gin.Context) {
 		return
 	}
 
+	context.Set(ReqError, nil)
+	context.Set(ReqResult, data)
+}
+
+// 校验验证码，返回token
+func ValidateCode(context *gin.Context) {
+	var params struct {
+		Type  *uint32 `json:"type" binding:"required"`
+		Phone string  `json:"phone"`
+		Email string  `json:"email"`
+		Code  string  `json:"Code" binding:"required"`
+	}
+	deviceType := context.GetHeader("FZM-DEVICE")
+	if deviceType == "" {
+		context.Set(ReqError, result.NewError(result.ParamsError).SetChildErr(result.ServiceChat, nil, "Header:FZM-DEVICE"))
+		return
+	}
+
+	appId := context.GetHeader("FZM-APP-ID")
+	if appId == "" {
+		context.Set(ReqError, result.NewError(result.ParamsError).SetChildErr(result.ServiceChat, nil, "Header:FZM-APP-ID"))
+		return
+	}
+	//非强制性
+	version := context.GetHeader("FZM-VERSION")
+	if err := context.ShouldBindJSON(&params); err != nil {
+		context.Set(ReqError, result.NewError(result.ParamsError).SetChildErr(result.ServiceChat, nil, err.Error()))
+		return
+	}
+
+	var data interface{}
+	switch *params.Type {
+	case types.ValidateCodeTypeSMS:
+		//验证验证码是否正确
+		err := validatePhone(params.Phone, params.Code)
+		if err != nil {
+			context.Set(ReqError, result.NewError(result.VerifyCodeError))
+			return
+		}
+
+		//验证登录/注册
+		data, err = model.PhoneLogin(appId, params.Phone, deviceType, version)
+		if err != nil {
+			context.Set(ReqError, err)
+			return
+		}
+	case types.ValidateCodeTypeEmail:
+		//验证验证码是否正确
+		err := validateEmail(params.Email, params.Code)
+		if err != nil {
+			context.Set(ReqError, result.NewError(result.VerifyCodeError))
+			return
+		}
+
+		//验证登录/注册
+		data, err = model.EmailLogin(appId, params.Email, deviceType, version)
+		if err != nil {
+			context.Set(ReqError, err)
+			return
+		}
+	default:
+		context.Set(ReqError, result.NewError(result.ParamsError).SetChildErr(result.ServiceChat, nil, "unknown validate code type"))
+		return
+	}
 	context.Set(ReqError, nil)
 	context.Set(ReqResult, data)
 }
@@ -246,8 +326,30 @@ func SendCode(context *gin.Context) {
 		context.Set(ReqError, result.NewError(result.ParamsError).SetChildErr(result.ServiceChat, nil, err.Error()))
 		return
 	}
-	//TODO 发送验证码方法
+	//发送短信验证码
 	_, err := sms.Send(cfg.SMS.Surl, cfg.SMS.CodeType, params.Phone, cfg.SMS.Msg, "", "")
+	if err != nil {
+		context.Set(ReqError, nil)
+		return
+	}
+	context.Set(ReqError, nil)
+}
+
+// 发送邮箱验证码
+func SendEmail(context *gin.Context) {
+	type requestParams struct {
+		Email string `json:"email"`
+		//图形验证码所需
+		//Ticket     string `json:"ticket"`
+		//BusinessId string `json:"businessId"`
+	}
+	var params requestParams
+	if err := context.ShouldBindJSON(&params); err != nil {
+		context.Set(ReqError, result.NewError(result.ParamsError).SetChildErr(result.ServiceChat, nil, err.Error()))
+		return
+	}
+	//发送邮箱验证码
+	_, err := email.Send(cfg.Email.Surl, cfg.Email.CodeType, params.Email, cfg.Email.Msg, "", "")
 	if err != nil {
 		context.Set(ReqError, nil)
 		return

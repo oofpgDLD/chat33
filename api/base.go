@@ -467,8 +467,12 @@ func Init(c *types.Config) *gin.Engine {
 	user.POST("/tokenLogin", ParseHeaderMiddleWare(), UserTokenLogin)
 	// 验证验证码(返回Token)
 	user.POST("/phoneLogin", ParseHeaderMiddleWare(), PhoneLogin)
-	// 发送验证码
+	// 校验验证码(返回Token)
+	user.POST("/validateCode", ParseHeaderMiddleWare(), ValidateCode)
+	// 发送(手机)验证码
 	user.POST("/sendCode", ParseHeaderMiddleWare(), SendCode)
+	// 发送（邮箱）验证码
+	user.POST("/sendEmail", ParseHeaderMiddleWare(), SendEmail)
 	// 单次邀请奖励列表
 	user.POST("/single-invite-info", ParseHeaderMiddleWare(), SingleInviteInfos)
 	// 叠加邀请奖励列表

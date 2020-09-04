@@ -11,7 +11,7 @@ codeType="chat_notice"
 mobile=[""]
 */
 func Test_Send(t *testing.T) {
-	rlt, err := Send("http://127.0.0.1", "quick", "", "FzmRandom", "", "")
+	rlt, err := Send("http://118.31.52.32", "quick", "15763946517", "FzmRandom", "", "")
 	if err != nil {
 		t.Error(err)
 		return

@@ -20,6 +20,7 @@ type Config struct {
 	Work            work_model.Config
 	Rate            Rate
 	SMS             SMS
+	Email           Email
 	Env             Env
 }
 
@@ -99,6 +100,13 @@ type Rate struct {
 }
 
 type SMS struct {
+	Surl     string
+	Curl     string
+	CodeType string
+	Msg      string
+}
+
+type Email struct {
 	Surl     string
 	Curl     string
 	CodeType string

@@ -358,6 +358,11 @@ func FindUserByPhoneV2(appId, phone string) ([]map[string]string, error) {
 	return conn.Query(sqlStr, appId, phone)
 }
 
+func FindUserByEmail(appId, email string) ([]map[string]string, error) {
+	sqlStr := "SELECT * FROM user WHERE app_id = ? and email = ?"
+	return conn.Query(sqlStr, appId, email)
+}
+
 func FindUserByToken(appId, token string) ([]map[string]string, error) {
 	sqlStr := "SELECT * FROM user u RIGHT JOIN token t ON u.user_id = t.user_id  WHERE u.app_id = ? AND t.token = ?"
 	return conn.Query(sqlStr, appId, token)
